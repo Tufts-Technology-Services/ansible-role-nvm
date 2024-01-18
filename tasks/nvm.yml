@@ -11,12 +11,6 @@
     - name: set bash command
       set_fact:
         mg_user_shell: { 'command': '{{ mg_found_path }} -ic', 'alias': 'bash' }
-      when: '"bash" in nvm_profile'
-
-    - name: "!WARNING! set unrecommended default for any other nvm_profile value !WARNING!"
-      set_fact:
-        mg_user_shell: { 'command': '/etc/bash -ic', 'alias': 'bash' }
-      when: (mg_shell_path is undefined) or (mg_found_path | length == 0)
 
     - name: does profile file exist
       stat:
