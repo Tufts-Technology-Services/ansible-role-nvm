@@ -38,6 +38,17 @@
 
   when: nvm_profile | length != 0
 
+# wget (deault) or curl
+- name: Installing via curl or wget
+  block:
+  - name: Check if wget or curl is installed
+    command: "which {{ nvm_install }}"
+    become: true
+    become_user: rubyadm
+    register: mg_cmd
+    changed_when: "mg_cmd.rc != 0"
+
+
   - name: Create nvm_dir if it does not exist
     file:
       group: "{{ nvm_user }}"
