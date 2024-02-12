@@ -179,6 +179,21 @@
   when:  default
   changed_when: "'nodejs_version' not in mg_nvm_default_response.stdout"
 
+- name: Check current default Node.js version
+  shell: "{{ mg_user_shell.command + ' \"nvm version default\"' }}"
+  register: current_version
+  changed_when: False
+  become: true
+  become_user: rubyadm
+
+- name: Set default Node.js version
+  shell: "{{ mg_user_shell.command + ' \"' +  item + '\"' }}"
+  with_items:
+    "{{ nvm_alias_commands }}"
+  become: true
+  become_user: rubyadm
+  when: nvm_alias_commands | length > 0 and current_version.stdout != "v" + nodejs_version
+
 - name: Run whatever nvm_commands are there # noqa 305
   shell: "{{ mg_user_shell.command + ' \"' +  item + '\"' }}"
   with_items:
