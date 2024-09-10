@@ -16,7 +16,7 @@
       stat:
         path: "{{ nvm_profile }}"
       become: true
-      become_user: rubyadm
+      become_user: "{{ nvm_user }}"
       register: mg_profile_file
 
     - name: Create profile file if it does not exist
@@ -28,7 +28,7 @@
         state: touch
       when: not mg_profile_file.stat.exists
       become: true
-      become_user: rubyadm
+      become_user: "{{ nvm_user }}"
 
   when: nvm_profile | length != 0
 
@@ -38,7 +38,7 @@
   - name: Check if wget or curl is installed
     command: "which {{ nvm_install }}"
     become: true
-    become_user: rubyadm
+    become_user: "{{ nvm_user }}"
     register: mg_cmd
     changed_when: "mg_cmd.rc != 0"
 
@@ -51,7 +51,7 @@
       path: "{{ nvm_dir }}"
       state: directory
     become: true
-    become_user: rubyadm
+    become_user: "{{ nvm_user }}"
     when: nvm_dir | length != 0
 
   # There are some potential security concerns with piping the install.sh script to whatever shell alias is defined: Risk is Low but not absolute
@@ -61,7 +61,7 @@
   - name: Install NVM
     shell: "wget -qO- https://raw.githubusercontent.com/creationix/nvm/v{{ nvm_version }}/install.sh | NVM_SOURCE={{ nvm_source }} NVM_DIR={{ nvm_dir }} PROFILE={{ nvm_profile }} {{ mg_user_shell.alias }}"
     become: true
-    become_user: rubyadm
+    become_user: "{{ nvm_user }}"
     register: mg_nvm_result
     changed_when: "'already installed' not in mg_nvm_result.stdout"
     failed_when:
@@ -74,7 +74,7 @@
       mode: 0644
       path: "{{ nvm_profile }}"
     become: true
-    become_user: rubyadm
+    become_user: "{{ nvm_user }}"
     when: not mg_profile_file.stat.exists
 
   when: nvm_install in ['curl', 'wget']
@@ -86,7 +86,7 @@
     - name: Check if git is installed
       command: "which {{ nvm_install }}"
       become: true
-      become_user: rubyadm
+      become_user: "{{ nvm_user }}"
       register: mg_cmd
 
     - name: Remove NVM nvm_profile
@@ -99,7 +99,7 @@
         path: "{{ nvm_profile }}"
         state: absent
       become: true
-      become_user: rubyadm
+      become_user: "{{ nvm_user }}"
 
     - name: Install via git
       git:
@@ -107,7 +107,7 @@
         repo: 'https://github.com/creationix/nvm.git .nvm'
         version: "{{ nvm_version }}"
       become: true
-      become_user: rubyadm
+      become_user: "{{ nvm_user }}"
       when: "'/git' in mg_cmd.stdout"
 
     - name: Add NVM to nvm_profile
@@ -122,14 +122,14 @@
         path: "{{ nvm_profile }}"
         state: present
       become: true
-      become_user: rubyadm
+      become_user: "{{ nvm_user }}"
 
   when: "nvm_install == 'git'"
 
 - name: Check NVM Version # noqa 305
   shell: "{{ mg_user_shell.command + ' \"nvm --version\"' }}"
   become: true
-  become_user: rubyadm
+  become_user: "{{ nvm_user }}"
   register: mg_nvm_version_response
   changed_when: "mg_nvm_version_response.rc != 0"
 
@@ -145,7 +145,7 @@
     path: "{{ nvm_profile }}"
     state: present
   become: true
-  become_user: rubyadm
+  become_user: "{{ nvm_user }}"
   when: autocomplete
 
 - name: LTS Check
@@ -158,7 +158,7 @@
 - name: Install Node # noqa 305
   shell: "{{ mg_user_shell.command + ' \"nvm install ' +  nodejs_version + '\"' }}"
   become: true
-  become_user: rubyadm
+  become_user: "{{ nvm_user }}"
   register: mg_node_version_response
   changed_when: "'already installed' not in mg_node_version_response.stderr"
 
@@ -166,7 +166,7 @@
 - name: Is there a default already set # noqa 305
   shell: "{{ mg_user_shell.command + ' \"cat \\$(printenv NVM_DIR)/alias/default\"' }}"
   become: true
-  become_user: rubyadm
+  become_user: "{{ nvm_user }}"
   register: mg_nvm_default_response
   changed_when: "mg_nvm_default_response.rc != 0"
 
@@ -175,7 +175,7 @@
 - name: Set default version of Node if multiple versions exist # noqa 305
   shell: "{{ mg_user_shell.command + ' \"nvm alias default ' +  nodejs_version + ' --no-colors\"' }}"
   become: true
-  become_user: rubyadm
+  become_user: "{{ nvm_user }}"
   when:  default
   changed_when: "'nodejs_version' not in mg_nvm_default_response.stdout"
 
@@ -184,14 +184,14 @@
   register: current_version
   changed_when: False
   become: true
-  become_user: rubyadm
+  become_user: "{{ nvm_user }}"
 
 - name: Set default Node.js version
   shell: "{{ mg_user_shell.command + ' \"' +  item + '\"' }}"
   with_items:
     "{{ nvm_alias_commands }}"
   become: true
-  become_user: rubyadm
+  become_user: "{{ nvm_user }}"
   when: nvm_alias_commands | length > 0 and current_version.stdout != "v" + nodejs_version
 
 - name: Run whatever nvm_commands are there # noqa 305
@@ -199,7 +199,7 @@
   with_items:
     "{{ nvm_commands }}"
   become: true
-  become_user: rubyadm
+  become_user: "{{ nvm_user }}"
   when: nvm_commands | length > 0
 
 # Uninstall NVM
@@ -211,7 +211,7 @@
       path: "{{ lookup('env','NVM_DIR') }}"
       state: absent
     become: true
-    become_user: rubyadm
+    become_user: "{{ nvm_user }}"
 
   - name: Remove NVM nvm_profile info
     lineinfile:
@@ -219,7 +219,7 @@
       path: "{{ nvm_profile }}"
       state: absent
     become: true
-    become_user: rubyadm
+    become_user: "{{ nvm_user }}"
 
   - name: Remove NVM autocomplete from nvm_profile
     blockinfile:
@@ -230,6 +230,6 @@
       path: "{{ nvm_profile }}"
       state: absent
     become: true
-    become_user: rubyadm
+    become_user: "{{ nvm_user }}"
 
   when: uninstall | bool
